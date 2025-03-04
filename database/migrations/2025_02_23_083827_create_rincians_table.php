@@ -11,15 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('peminjaman_details', function (Blueprint $table) {
+        Schema::create('rincians', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('id_pm_barang');
+             $table->unsignedBigInteger('id_detail_ruangan');
             $table->unsignedBigInteger('id_barang')->nullable();
             $table->integer('jumlah_pinjam');
-            $table->timestamps();
+            $table->Integer('kondisi')->unsigned();
 
-            // $table->foreign('id_pm_barang')->references('id')->on('pm_barangs')->onDelete('cascade');
-            // $table->foreign('id_barang')->references('id')->on('barangs')->onDelete('cascade');
+            $table->timestamps();
         });
     }
 
@@ -28,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('peminjaman_details');
+        Schema::dropIfExists('rincians');
     }
 };

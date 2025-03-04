@@ -11,18 +11,11 @@ class Barang extends Model
     protected $fillable = ['id','code_barang','nama_barang','merk','id_kategori','detail','jumlah'];
     public $timestamps = true;
 
-    public function merk()
-    {
-        return $this->belongsTo(Merk::class, 'id_merk');
-    }
     public function Kategori()
     {
         return $this->belongsTo(Kategori::class, 'id_kategori');
     }
-    public function kondisi()
-    {
-        return $this->belongsTo(Kondisi::class, 'id_kondisi');
-    }
+
 
     public function m_Barang()
     {
@@ -33,9 +26,13 @@ class Barang extends Model
     {
         return $this->hasMany(Detail_ruangan::class, 'id_barang');
     }
-
-         public function peminjaman_details()
+     public function peminjaman_details()
     {
-        return $this->belongsTo(peminjaman_details::class);
+        return $this->hasMany( peminjaman_details::class, 'id_barang');
     }
+     public function rincian()
+    {
+        return $this->hasMany( rincian::class, 'id_barang');
+    }
+    
 }

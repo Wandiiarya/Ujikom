@@ -52,7 +52,7 @@
                         <td>{{ $data->jumlah }}</td>
 
                         <td>
-                           <div class="dropdown d-inline">
+                        <div class="dropdown d-inline">
     <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
         ⋮
     </button>

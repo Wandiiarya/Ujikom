@@ -11,14 +11,16 @@ class peminjaman_details extends Model
      protected $table = 'peminjaman_details';
     protected $fillable = ['id_pm_barang', 'id_barang', 'jumlah_pinjam'];
 
-    public function pm_barang()
+  public function pm_barang()
     {
-        return $this->belongsTo(pm_Barang::class, 'id_pm_barang');
+        return $this->belongsTo(pm_barang::class, 'id_pm_barang');
     }
 
+    // Relasi ke barang
     public function barang()
     {
         return $this->belongsTo(Barang::class, 'id_barang');
     }
+
 }
 

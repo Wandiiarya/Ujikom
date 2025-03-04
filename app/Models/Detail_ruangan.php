@@ -8,15 +8,16 @@ use Illuminate\Database\Eloquent\Model;
 class Detail_ruangan extends Model
 {
     use HasFactory;
-    protected $fillable = ['id','id_barang','id_ruangan'];
+    protected $fillable = ['id','id_ruangan'];
     public $timestamps = true;
 
-    public function barang()
-    {
-        return $this->belongsTo(Barang::class, 'id_barang');
-    }
     public function ruangan()
     {
         return $this->belongsTo(Ruangan::class, 'id_ruangan');
+
+    }
+     public function rincian()
+    {
+        return $this->hasMany( rincian::class, 'id_detail_ruangan');
     }
 }

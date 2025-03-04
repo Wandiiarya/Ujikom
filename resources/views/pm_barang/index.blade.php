@@ -35,10 +35,10 @@
                         <th>Nama Peminjam</th>
                         <th>Jenis kegiatan</th>
                         <th>Nama Barang</th>
+                        <th>Jumlah Pinjam</th>
                         <th>Nama Ruangan</th>
                         <th>Tanggal Peminjaman</th>
                         <th>Waktu Peminjaman</th>
-                        <th>Dokumentasi</th>
                         <th>serah terima </th>
                         <th>berita peminjaman</th>
                         <th>aksi</th>
@@ -50,16 +50,26 @@
                     <tr>
                         <td>{{ $i++ }}</td>
                         <td>{{ $data->code_peminjaman }}</td>
-                        <td>{{ $data->id_anggota }}</td>
+                        <td>{{ $data->anggota->nama_peminjam }}</td>
                         <td>{{ $data->jenis_kegiatan }}</td>
-                        <td>{{$data->barang->nama_barang}}</td>
+                         <td>
+                        <ul>
+                            @foreach ($data->peminjaman_details as $detail)
+                            <li>{{ $detail->barang->nama_barang }} </li>
+                            @endforeach
+                        </ul>
+                    </td>
+                     <td>
+                        <ul>
+                            @foreach ($data->peminjaman_details as $detail)
+                            <li> {{ $detail->jumlah_pinjam }} Pcs</li>
+                            @endforeach
+                        </ul>
+                    </td>
+
                         <td>{{$data->ruangan->nama_ruangan}}</td>
                         <td>{{ $data->tanggal_peminjaman }}</td>
                         <td>{{ $data->waktu_peminjaman }}</td>
-                        <td>
-                            <img src="{{ asset('/images/pm_barang/' . $data->cover) }}"
-                                style="width: 150px">
-                        </td>
 
 <!-- Tombol untuk membuka modal -->
 <td class="button">
@@ -113,16 +123,27 @@
 
 
 
-                        <td  style="width: 10000px" >
-                            <form action="{{ route('pm_barang.destroy', $data->id) }}" method="POST">
-                                @csrf
-                                @method('DELETE')
-                                <a href="{{ route('pm_barang.edit', $data->id) }}"
-                                    class="btn btn-sm btn-warning">Edit</a>
-                                <a href="{{ route('pm_barang.destroy', $data->id)}}"
-                                     class="btn btn-sm btn-danger mt-2" data-confirm-delete="true">Delete</a>
-                            </form>
+                        <<td>
+                        <div class="dropdown d-inline">
+    <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+        ⋮
+    </button>
+    <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+        <li>
+            <a class="dropdown-item" href="{{ route('pm_barang.edit', $data->id) }}">✏ Edit</a>
+        </li>
+        <li>
+            <form action="{{ route('pm_barang.destroy', $data->id) }}" method="POST" class="d-inline">
+                @csrf
+                @method('DELETE')
+                <button type="submit" class="dropdown-item text-danger" onclick="return confirm('Yakin ingin menghapus?')">🗑 Hapus</button>
+            </form>
+        </li>
+    </ul>
+</div>
+
                         </td>
+
                     </tr>
                     @endforeach
                 </tbody>

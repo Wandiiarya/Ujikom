@@ -7,45 +7,12 @@ use App\Models\Anggota;
 use App\Models\Ruangan;
 use App\Models\pm_barang;
 use App\Models\peminjaman_details;
+use Illuminate\Http\Request;
 use RealRashid\SweetAlert\Facades\Alert;
 use PDF;
-use Illuminate\Http\Request;
 
 class PmBarangController extends Controller
 {
-    public function viewPDF(Request $request)
-    {
-        $pm_barang = pm_barang::findOrFail($request->idPeminjaman);
-
-        $data = [
-            'date' => date('m/d/Y'),
-            'pm_barang' => $pm_barang,
-        ];
-
-        $pdf = PDF::loadView('pm_barang.export-pdf', $data)->setPaper('a4', 'portrait');
-
-        return response($pdf->stream(), 200)
-            ->header('Content-Type', 'application/pdf')
-            ->header('Content-Disposition', 'inline; filename="document.pdf"');
-    }
-
-    public function viewBARANG(Request $request)
-    {
-        $pm_barang = pm_barang::findOrFail($request->idPeminjaman);
-
-        $isi = [
-            'date' => date('m/d/Y'),
-            'pm_barang' => $pm_barang,
-        ];
-
-        $pdf = PDF::loadView('pm_barang.export-barang', $isi)
-            ->setPaper('a4', 'portrait');
-
-        return response($pdf->stream(), 200)
-            ->header('Content-Type', 'application/pdf')
-            ->header('Content-Disposition', 'inline; filename="document.pdf"');
-    }
-
     public function __construct()
     {
         $this->middleware('auth');
@@ -54,117 +21,97 @@ class PmBarangController extends Controller
     public function index()
     {
         $pm_barang = pm_barang::all();
-        confirmDelete('Delete','Are you sure?');
-          $anggota = Anggota::all();
-
+        confirmDelete('Delete', 'Are you sure?');
         return view('pm_barang.index', compact('pm_barang'));
     }
 
-  public function create()
-{
-    $barang = Barang::all();
-    $ruangan = Ruangan::all();
-    $anggota = Anggota::all();
-
-    // Generate kode peminjaman otomatis
-    $latest = Pm_Barang::latest()->first();
-    $kodePeminjaman = $latest ? 'PM-' . str_pad($latest->id + 1, 4, '0', STR_PAD_LEFT) : 'PM-0001';
-
-    return view('pm_barang.create', compact('barang', 'ruangan', 'anggota', 'kodePeminjaman'));
-}
-
-
-       public function store(Request $request)
-{
-    // Validasi request (tambahkan aturan sesuai kebutuhan)
-
-    // Simpan data utama ke pm_barang
-    $pm_barang = new pm_barang();
-    $pm_barang->code_peminjaman = $request->code_peminjaman;
-    $pm_barang->id_anggota = $request->id_anggota;
-    $pm_barang->jenis_kegiatan = $request->jenis_kegiatan;
-    $pm_barang->id_ruangan = $request->id_ruangan;
-    $pm_barang->tanggal_peminjaman = $request->tanggal_peminjaman;
-    $pm_barang->waktu_peminjaman = $request->waktu_peminjaman;
-    $pm_barang->id_barang = $request->id_barang;
-
-    $pm_barang->save();
-
-    // Simpan detail barang yang dipinjam
-    foreach ($request->id_barang as $id_barang) {
-        $detail = new peminjaman_details(); // Gunakan tabel detail
-        $detail->id_peminjaman = $pm_barang->id;
-        $detail->id_barang = $id_barang;
-        $detail->save();
+    public function create()
+    {
+        $barang = Barang::all();
+        $ruangan = Ruangan::all();
+        $anggota = Anggota::all();
+        return view('pm_barang.create', compact('barang', 'ruangan', 'anggota'));
     }
 
-    // Handle file upload untuk cover (opsional)
-    if ($request->hasFile('cover')) {
-        $img = $request->file('cover');
-        $name = rand(1000, 9999) . $img->getClientOriginalName();
-        $img->move('images/pm_barang', $name);
-        $pm_barang->cover = $name;
-        $pm_barang->save(); // Simpan kembali setelah update cover
+  public function store(Request $request)
+{
+    $validated = $request->validate([
+        'jenis_kegiatan' => 'required',
+        'id_barang' => 'required|array',
+        'jumlah_pinjam' => 'required|array',
+        'jumlah_pinjam.*' => 'integer|min:1',
+        'tanggal_peminjaman' => 'required|date',
+        'waktu_peminjaman' => 'required',
+    ]);
+
+    $codePeminjaman = 'PM-' . date('Ymd') . '-' . mt_rand(1000, 9999);
+
+    $pmBarang = new pm_barang();
+    $pmBarang->code_peminjaman = $codePeminjaman;
+    $pmBarang->id_anggota = $request->id_anggota;
+    $pmBarang->jenis_kegiatan = $request->jenis_kegiatan;
+    $pmBarang->id_ruangan = $request->id_ruangan;
+    $pmBarang->tanggal_peminjaman = $request->tanggal_peminjaman;
+    $pmBarang->waktu_peminjaman = $request->waktu_peminjaman;
+    $pmBarang->save();
+
+    foreach ($request->id_barang as $index => $id_barang) {
+        $barang = Barang::findOrFail($id_barang);
+
+        if ($barang->jumlah < $request->jumlah_pinjam[$index]) {
+            Alert::error('Error', 'Stok barang tidak mencukupi!')->autoClose(2000);
+            return redirect()->back();
+        }
+
+        $barang->jumlah -= $request->jumlah_pinjam[$index];
+        $barang->save();
+
+        $peminjamanDetail = new peminjaman_details();
+        $peminjamanDetail->id_pm_barang = $pmBarang->id;
+        $peminjamanDetail->id_barang = $id_barang;
+        $peminjamanDetail->jumlah_pinjam = $request->jumlah_pinjam[$index];
+        $peminjamanDetail->save();
     }
 
-    // Notifikasi sukses
     Alert::success('Success', 'Data berhasil disimpan')->autoClose(1000);
-
-    // Redirect ke halaman index
     return redirect()->route('pm_barang.index');
 }
-
-
-    public function show(pm_barang $barang)
-    {
-        //
-    }
 
     public function edit($id)
     {
         $barang = Barang::all();
         $ruangan = Ruangan::all();
         $anggota = Anggota::all();
-        $pm_barang = pm_barang::findOrFail($id);
+        $pm_barang = pm_barang::where('code_peminjaman', $id)->get();
         return view('pm_barang.edit', compact('pm_barang', 'barang', 'ruangan', 'anggota'));
     }
 
     public function update(Request $request, $id)
     {
-        $this->validate($request, [
-            'code_peminjaman' => 'required',
-            'jenis_kegitan' => 'required',
-            'tanggal_peminjaman' => 'required',
-            'waktu_pengerjaan' => 'required',
-            'cover' => 'file|mimes:jpeg,png,jpg,gif,svg,pdf|max:1024',
-        ]);
+        $pm_barang = pm_barang::where('code_peminjaman', $id)->get();
 
-        $pm_barang = pm_barang::findOrFail($id);
-        $pm_barang->code_peminjaman = $request->code_peminjaman;
-        $pm_barang->id_anggota = $request->id_anggota;
-        $pm_barang->jenis_kegitan = $request->jenis_kegitan;
-        $pm_barang->id_barang = $request->id_barang;
-        $pm_barang->id_ruangan = $request->id_ruangan;
-        $pm_barang->tanggal_peminjaman = $request->tanggal_peminjaman;
-        $pm_barang->waktu_pengerjaan = $request->waktu_pengerjaan;
-
-        if ($request->hasFile('cover')) {
-            $img = $request->file('cover');
-            $name = rand(1000, 9999) . $img->getClientOriginalName();
-            $img->move('images/pm_barang', $name);
-            $pm_barang->cover = $name;
+        foreach ($pm_barang as $item) {
+            $barangLama = Barang::findOrFail($item->id_barang);
+            $barangLama->jumlah += $item->jumlah_pinjam;
+            $barangLama->save();
+            $item->delete();
         }
 
-        Alert::success('Success','Data berhasil diubah')->autoClose(1000);
-        $pm_barang->save();
-        return redirect()->route('pm_barang.index');
+        return $this->store($request);
     }
+
 
     public function destroy($id)
     {
         $pm_barang = pm_barang::findOrFail($id);
+        $barang = Barang::findOrFail($pm_barang->id_barang);
+
+        // Kembalikan stok barang sebelum dihapus
+        $barang->jumlah += $pm_barang->jumlah_pinjam;
+        $barang->save();
+
         $pm_barang->delete();
-        Alert::success('Success','Data berhasil dihapus');
+        Alert::success('Success', 'Data berhasil dihapus');
         return redirect()->route('pm_barang.index');
     }
 }
